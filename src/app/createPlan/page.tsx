@@ -1,20 +1,19 @@
-// app/createPlan/page.tsx
 "use client";
-
 import { useState } from "react";
+import PlanEditor, { PlanItem } from "./PlanEditor";
+
 
 export default function CreatePlanPage() {
-  // フォームの入力内容をステート管理
   const [date, setDate] = useState("");
   const [area, setArea] = useState("");
   const [interests, setInterests] = useState<string[]>([]);
   const [budget, setBudget] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    // TODO: AI提案APIにリクエストを送る処理を追加予定
-    alert(`AI提案する: 日付=${date}, エリア=${area}, 興味=${interests.join(", ")}, 予算=${budget}`);
-  };
+  // ローディング・エラー・レスポンス格納用
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [planItems, setPlanItems] = useState<PlanItem[]>([]);
+  const [isEditing, setIsEditing] = useState(false); // 編集モードのフラグ
 
   const toggleInterest = (interest: string) => {
     setInterests((prev) =>
@@ -24,9 +23,60 @@ export default function CreatePlanPage() {
     );
   };
 
+  // ------------------
+  // AI提案リクエスト
+  // ------------------
+  const generatePlan = async () => {
+    try {
+      setIsLoading(true);
+      setError("");
+      setPlanItems([]);
+
+      const res = await fetch("/api/generatePlan", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          date,
+          area,
+          interests,
+          budget,
+        }),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || "API Error");
+      }
+
+      const data = await res.json();
+      // data.planが存在するか確認
+      if (!data.plan || !Array.isArray(data.plan)) {
+        throw new Error("Invalid AI response format");
+      }
+
+      // plan配列をステートに保存
+      setPlanItems(data.plan);
+    } catch (err: unknown) {
+        if(err instanceof Error){
+            setError(err.message);
+        }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // フォーム送信時のハンドラ
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    generatePlan();
+  };
+
   return (
     <main className="max-w-md mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4">お出かけプラン作成</h1>
+
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* 日付 */}
         <div>
@@ -87,13 +137,59 @@ export default function CreatePlanPage() {
           </select>
         </div>
 
+        {/* 提案ボタン */}
         <button
           type="submit"
           className="mt-4 w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600"
+          disabled={isLoading}
         >
-          AIに提案させる
+          {isLoading ? "AI提案中..." : "AIに提案させる"}
         </button>
       </form>
+
+      {/* エラー表示 */}
+      {error && (
+        <div className="mt-4 text-red-600">
+          エラー: {error}
+        </div>
+      )}
+
+       {/* AI応答表示 or 編集UI */}
+       {!isEditing ? (
+        <div className="mt-6">
+          {/* プランがあれば表示 */}
+          {planItems.length > 0 ? (
+            <div className="border rounded p-3 bg-white shadow">
+              <h2 className="text-xl font-semibold mb-2">AI提案プラン</h2>
+              {planItems.map((item, idx) => (
+                <div key={idx} className="mb-3">
+                  <p className="font-bold">{item.timeRange}</p>
+                  <p>{item.spotName}</p>
+                  <p className="text-sm text-gray-600">{item.description}</p>
+                </div>
+              ))}
+              {/* 編集ボタン */}
+              <button
+                onClick={() => setIsEditing(true)}
+                className="mt-4 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+              >
+                このプランを編集
+              </button>
+            </div>
+          ) : (
+            <p className="text-gray-600">プランがまだありません</p>
+          )}
+        </div>
+      ) : (
+        // isEditing === true → PlanEditorコンポーネントを表示
+        <div className="mt-6">
+          <PlanEditor
+            planItems={planItems}
+            setPlanItems={setPlanItems}
+            onFinish={() => setIsEditing(false)}
+          />
+        </div>
+      )}
     </main>
   );
 }
