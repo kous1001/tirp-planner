@@ -1,7 +1,7 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import PlanEditor, { PlanItem } from "./PlanEditor";
-
+import { v4 as uuidv4 } from "uuid"; // crypto.randomUUID()でもOK
 
 export default function CreatePlanPage() {
   const [date, setDate] = useState("");
@@ -14,6 +14,7 @@ export default function CreatePlanPage() {
   const [error, setError] = useState("");
   const [planItems, setPlanItems] = useState<PlanItem[]>([]);
   const [isEditing, setIsEditing] = useState(false); // 編集モードのフラグ
+  const [shareUrls, setShareUrls] = useState<string[]>([]);
 
   const toggleInterest = (interest: string) => {
     setInterests((prev) =>
@@ -22,6 +23,18 @@ export default function CreatePlanPage() {
         : [...prev, interest]
     );
   };
+
+  useEffect(() => {
+    const storedList = localStorage.getItem("tripPlannerList");
+    if (storedList) {
+      const planIdArray: string[] = JSON.parse(storedList);
+      // planIdごとに URL を生成
+      const urls = planIdArray.map(
+        (id) => `${window.location.origin}/plans/${id}`
+      );
+      setShareUrls(urls);
+    }
+  }, []);
 
   // ------------------
   // AI提案リクエスト
@@ -59,12 +72,42 @@ export default function CreatePlanPage() {
       // plan配列をステートに保存
       setPlanItems(data.plan);
     } catch (err: unknown) {
-        if(err instanceof Error){
-            setError(err.message);
-        }
+      if (err instanceof Error) {
+        setError(err.message);
+      }
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // ============================
+  // プランをローカルストレージに保存
+  // ============================
+  const handleSavePlan = () => {
+    if (planItems.length === 0) {
+      alert("プランがありません");
+      return;
+    }
+    // ユニークIDを生成
+    const planId = uuidv4();
+    // あるいは: const planId = crypto.randomUUID(); (ブラウザ対応要確認)
+
+    // localStorageに保存 (キー: "tripPlanner_{planId}")
+    localStorage.setItem(`tripPlanner_${planId}`, JSON.stringify(planItems));
+
+    // 既存のplanIdリストを読み込み
+    const storedList = localStorage.getItem("tripPlannerList");
+    const planIdArray: string[] = storedList ? JSON.parse(storedList) : [];
+
+    // 新しいplanIdを追加
+    planIdArray.push(planId);
+    localStorage.setItem("tripPlannerList", JSON.stringify(planIdArray));
+
+    // shareUrlsを更新 (全planIdのURLを再生成)
+    const urls = planIdArray.map(
+      (id) => `${window.location.origin}/plans/${id}`
+    );
+    setShareUrls(urls);
   };
 
   // フォーム送信時のハンドラ
@@ -148,14 +191,10 @@ export default function CreatePlanPage() {
       </form>
 
       {/* エラー表示 */}
-      {error && (
-        <div className="mt-4 text-red-600">
-          エラー: {error}
-        </div>
-      )}
+      {error && <div className="mt-4 text-red-600">エラー: {error}</div>}
 
-       {/* AI応答表示 or 編集UI */}
-       {!isEditing ? (
+      {/* AI応答表示 or 編集UI */}
+      {!isEditing ? (
         <div className="mt-6">
           {/* プランがあれば表示 */}
           {planItems.length > 0 ? (
@@ -188,6 +227,32 @@ export default function CreatePlanPage() {
             setPlanItems={setPlanItems}
             onFinish={() => setIsEditing(false)}
           />
+        </div>
+      )}
+      {/* プラン保存ボタン */}
+      <div className="mt-6">
+        <button
+          onClick={handleSavePlan}
+          className="bg-green-500 text-white px-4 py-2 rounded"
+        >
+          プランを保存
+        </button>
+      </div>
+      {/* シェアURL表示 */}
+      {/* すべてのプランURL一覧を表示 */}
+      {shareUrls.length > 0 && (
+        <div className="mt-6 p-3 bg-gray-100 border rounded">
+          <h3 className="font-bold mb-2">保存済みプランURL一覧</h3>
+          {shareUrls.map((url) => (
+            <div key={url} className="mb-1">
+              <a href={url} className="text-blue-600 underline">
+                {url}
+              </a>
+            </div>
+          ))}
+          <p className="text-sm text-gray-600 mt-2">
+            ※同じ端末・同じブラウザでのみアクセス可能です
+          </p>
         </div>
       )}
     </main>
