@@ -363,7 +363,7 @@ export default function CreatePlanPage() {
                 </div>
             )}
             {/* プラン保存ボタン */}
-            <div className="mt-6">
+            <div className="mt-6 flex justify-center">
                 <button
                     onClick={handleSavePlan}
                     className="bg-green-500 text-white px-4 py-2 rounded"
