@@ -1,195 +1,210 @@
 "use client";
 
 import { Dispatch, SetStateAction, useState } from "react";
-
-// プランアイテムの型
-export type PlanItem = {
-  timeRange: string;
-  spotName: string;
-  description: string;
-};
+import { DayPlan, ScheduleItem } from "@/types/DayPlan"; // など
+import DayBlock from "./DayBlock";
 
 type PlanEditorProps = {
-  planItems: PlanItem[];
-  setPlanItems: Dispatch<SetStateAction<PlanItem[]>>;
-  onFinish: () => void;  // 編集完了 or キャンセルの合図用
+    dayPlans: DayPlan[];
+    setDayPlans: Dispatch<SetStateAction<DayPlan[]>>;
+    onFinish: () => void;  // 編集完了 or キャンセルの合図用
 };
 
-export default function PlanEditor({
-  planItems,
-  setPlanItems,
-  onFinish,
-}: PlanEditorProps) {
-  // 新規追加フォーム制御用
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [newTimeRange, setNewTimeRange] = useState("");
-  const [newSpotName, setNewSpotName] = useState("");
-  const [newDescription, setNewDescription] = useState("");
+export default function PlanEditor({ dayPlans, setDayPlans, onFinish }: PlanEditorProps) {
+    // 「新しい日」を追加するフォーム制御 (日付や宿泊施設の入力)
+    const [showAddDayForm, setShowAddDayForm] = useState(false);
+    const [newDate, setNewDate] = useState("");
+    const [newAccommodationName, setNewAccommodationName] = useState("");
+    const [newAccommodationDesc, setNewAccommodationDesc] = useState("");
 
-  // 順番を上へ
-  const moveItemUp = (index: number) => {
-    if (index === 0) return;
-    setPlanItems((prev) => {
-      const newArr = [...prev];
-      [newArr[index - 1], newArr[index]] = [newArr[index], newArr[index - 1]];
-      return newArr;
-    });
-  };
+    // ----------------------------------------------------
+    // 日ごとの操作
+    // ----------------------------------------------------
+    const addNewDay = () => {
+        if (!newDate) {
+            alert("日付を入力してください");
+            return;
+        }
+        const newDay: DayPlan = {
+            date: newDate,
+            accommodation: {
+                name: newAccommodationName,
+                description: newAccommodationDesc
+            },
+            schedule: [],
+            weather: {
+                icon: "",
+                highTemp: "",
+                lowTemp: "",
+            },
+        };
+        setDayPlans((prev) => [...prev, newDay]);
 
-  // 順番を下へ
-  const moveItemDown = (index: number) => {
-    setPlanItems((prev) => {
-      if (index === prev.length - 1) return prev;
-      const newArr = [...prev];
-      [newArr[index + 1], newArr[index]] = [newArr[index], newArr[index + 1]];
-      return newArr;
-    });
-  };
-
-  // 削除
-  const removeItem = (index: number) => {
-    setPlanItems((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  // 新規アイテム追加
-  const addNewItem = () => {
-    if (!newTimeRange || !newSpotName) {
-      alert("時間帯とスポット名は必須です");
-      return;
-    }
-    const newItem: PlanItem = {
-      timeRange: newTimeRange,
-      spotName: newSpotName,
-      description: newDescription,
+        // フォームリセット
+        setNewDate("");
+        setNewAccommodationName("");
+        setNewAccommodationDesc("");
+        setShowAddDayForm(false);
     };
-    setPlanItems((prev) => [...prev, newItem]);
 
-    // フォームリセット
-    setNewTimeRange("");
-    setNewSpotName("");
-    setNewDescription("");
-    setShowAddForm(false);
-  };
+    const removeDay = (index: number) => {
+        setDayPlans((prev) => prev.filter((_, i) => i !== index));
+    };
 
-  return (
-    <div className="p-3 border rounded bg-white shadow">
-      <h2 className="text-xl font-bold mb-4">プラン編集</h2>
+    const moveDayUp = (index: number) => {
+        if (index === 0) return;
+        setDayPlans((prev) => {
+            const newArr = [...prev];
+            [newArr[index - 1], newArr[index]] = [newArr[index], newArr[index - 1]];
+            return newArr;
+        });
+    };
 
-      {/* プラン一覧 */}
-      <div className="space-y-4">
-        {planItems.map((item, index) => (
-          <div
-            key={index}
-            className="border rounded p-3 flex items-start gap-3 bg-gray-50"
-          >
-            <div className="flex-grow">
-              <p className="font-bold">{item.timeRange}</p>
-              <p>{item.spotName}</p>
-              <p className="text-sm text-gray-600">{item.description}</p>
-            </div>
-            <div className="flex flex-col gap-1">
-              <button
-                onClick={() => moveItemUp(index)}
-                className="text-sm bg-gray-200 px-2 py-1 rounded hover:bg-gray-300"
-              >
-                ↑
-              </button>
-              <button
-                onClick={() => moveItemDown(index)}
-                className="text-sm bg-gray-200 px-2 py-1 rounded hover:bg-gray-300"
-              >
-                ↓
-              </button>
-              <button
-                onClick={() => removeItem(index)}
-                className="text-sm bg-red-300 px-2 py-1 rounded hover:bg-red-400"
-              >
-                削除
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
+    const moveDayDown = (index: number) => {
+        setDayPlans((prev) => {
+            if (index === prev.length - 1) return prev;
+            const newArr = [...prev];
+            [newArr[index + 1], newArr[index]] = [newArr[index], newArr[index + 1]];
+            return newArr;
+        });
+    };
 
-      {/* 新規追加 */}
-      <div className="mt-4">
-        {!showAddForm && (
-          <button
-            onClick={() => setShowAddForm(true)}
-            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-          >
-            + アイテムを追加
-          </button>
-        )}
-        {showAddForm && (
-          <div className="border rounded p-3 mt-2 bg-gray-50 space-y-2">
+    // ----------------------------------------------------
+    // 各日内のスケジュール操作
+    // ----------------------------------------------------
+    const addScheduleItem = (dayIndex: number, newItem: ScheduleItem) => {
+        setDayPlans((prev) => {
+            const newArr = [...prev];
+            newArr[dayIndex].schedule = [...newArr[dayIndex].schedule, newItem];
+            return newArr;
+        });
+    };
+
+    const removeScheduleItem = (dayIndex: number, itemIndex: number) => {
+        setDayPlans((prev) => {
+            const newArr = [...prev];
+            newArr[dayIndex].schedule = newArr[dayIndex].schedule.filter((_, i) => i !== itemIndex);
+            return newArr;
+        });
+    };
+
+    const moveScheduleItemUp = (dayIndex: number, itemIndex: number) => {
+        if (itemIndex === 0) return;
+        setDayPlans((prev) => {
+            const newArr = [...prev];
+            const schedule = [...newArr[dayIndex].schedule];
+            [schedule[itemIndex - 1], schedule[itemIndex]] = [schedule[itemIndex], schedule[itemIndex - 1]];
+            newArr[dayIndex].schedule = schedule;
+            return newArr;
+        });
+    };
+
+    const moveScheduleItemDown = (dayIndex: number, itemIndex: number) => {
+        setDayPlans((prev) => {
+            const newArr = [...prev];
+            const schedule = [...newArr[dayIndex].schedule];
+            if (itemIndex < schedule.length - 1) {
+                [schedule[itemIndex + 1], schedule[itemIndex]] = [schedule[itemIndex], schedule[itemIndex + 1]];
+            }
+            newArr[dayIndex].schedule = schedule;
+            return newArr;
+        });
+    };
+
+
+    return (
+        <div className="p-3 border rounded bg-white shadow">
+            <h2 className="text-xl font-bold mb-4">複数日プラン編集</h2>
+
+            {/* 日ごとの表示 */}
             <div>
-              <label className="block text-sm font-semibold">時間帯</label>
-              <input
-                type="text"
-                value={newTimeRange}
-                onChange={(e) => setNewTimeRange(e.target.value)}
-                className="w-full border px-2 py-1 rounded"
-                placeholder="例) 14:00 - 15:00"
-              />
+                {dayPlans.map((dayPlan, index) => <DayBlock
+                    key={index}
+                    dayPlan={dayPlan}
+                    dayIndex={index}
+                    removeDay={removeDay}
+                    moveDayUp={moveDayUp}
+                    moveDayDown={moveDayDown}
+                    addScheduleItem={addScheduleItem}
+                    removeScheduleItem={removeScheduleItem}
+                    moveScheduleItemUp={moveScheduleItemUp}
+                    moveScheduleItemDown={moveScheduleItemDown}
+                />)}
             </div>
-            <div>
-              <label className="block text-sm font-semibold">スポット名</label>
-              <input
-                type="text"
-                value={newSpotName}
-                onChange={(e) => setNewSpotName(e.target.value)}
-                className="w-full border px-2 py-1 rounded"
-                placeholder="例) ○○美術館"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold">説明</label>
-              <textarea
-                value={newDescription}
-                onChange={(e) => setNewDescription(e.target.value)}
-                className="w-full border px-2 py-1 rounded"
-                rows={2}
-                placeholder="概要やおすすめポイントなど"
-              />
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={addNewItem}
-                className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
-              >
-                追加
-              </button>
-              <button
-                onClick={() => {
-                  setShowAddForm(false);
-                  setNewTimeRange("");
-                  setNewSpotName("");
-                  setNewDescription("");
-                }}
-                className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400"
-              >
-                キャンセル
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
 
-      <div className="mt-6 flex gap-2">
-        <button
-          onClick={() => onFinish()}
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-        >
-          編集完了
-        </button>
-        <button
-          onClick={() => onFinish()}
-          className="bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500"
-        >
-          キャンセル
-        </button>
-      </div>
-    </div>
-  );
+            {/* 新しい日を追加 */}
+            {!showAddDayForm ? (
+                <button
+                    onClick={() => setShowAddDayForm(true)}
+                    className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+                >
+                    + 日を追加
+                </button>
+            ) : (
+                <div className="border rounded p-3 mt-2 bg-gray-50 space-y-2">
+                    <div>
+                        <label className="block text-sm font-semibold">日付</label>
+                        <input
+                            type="date"
+                            value={newDate}
+                            onChange={(e) => setNewDate(e.target.value)}
+                            className="w-full border px-2 py-1 rounded"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-semibold">宿泊施設 (オプション)</label>
+                        <input
+                            type="text"
+                            value={newAccommodationName}
+                            onChange={(e) => setNewAccommodationName(e.target.value)}
+                            className="w-full border px-2 py-1 rounded"
+                            placeholder="例: ○○ホテル"
+                        />
+                        <input
+                            type="text"
+                            value={newAccommodationDesc}
+                            onChange={(e) => setNewAccommodationDesc(e.target.value)}
+                            className="w-full border px-2 py-1 rounded"
+                            placeholder="例: ○○ホテル"
+                        />
+                    </div>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={addNewDay}
+                            className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+                        >
+                            追加
+                        </button>
+                        <button
+                            onClick={() => {
+                                setShowAddDayForm(false);
+                                setNewDate("");
+                                setNewAccommodationName("");
+                                setNewAccommodationDesc("");
+                            }}
+                            className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400"
+                        >
+                            キャンセル
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* 完了ボタン */}
+            <div className="mt-6 flex gap-2">
+                <button
+                    onClick={onFinish}
+                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                >
+                    編集完了
+                </button>
+                <button
+                    onClick={onFinish}
+                    className="bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500"
+                >
+                    キャンセル
+                </button>
+            </div>
+        </div>
+    );
 }
