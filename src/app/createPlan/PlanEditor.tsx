@@ -1,16 +1,20 @@
 "use client";
 
 import { Dispatch, SetStateAction, useState } from "react";
-import { DayPlan, ScheduleItem } from "@/types/DayPlan"; // など
+import { DayPlan, ScheduleItem } from "@/types/DayPlan"; // 適宜パスを修正
 import DayBlock from "./DayBlock";
 
 type PlanEditorProps = {
     dayPlans: DayPlan[];
     setDayPlans: Dispatch<SetStateAction<DayPlan[]>>;
-    onFinish: () => void;  // 編集完了 or キャンセルの合図用
+    onFinish: () => void; // 編集完了 or キャンセルの合図用
 };
 
-export default function PlanEditor({ dayPlans, setDayPlans, onFinish }: PlanEditorProps) {
+export default function PlanEditor({
+    dayPlans,
+    setDayPlans,
+    onFinish,
+}: PlanEditorProps) {
     // 「新しい日」を追加するフォーム制御 (日付や宿泊施設の入力)
     const [showAddDayForm, setShowAddDayForm] = useState(false);
     const [newDate, setNewDate] = useState("");
@@ -29,7 +33,7 @@ export default function PlanEditor({ dayPlans, setDayPlans, onFinish }: PlanEdit
             date: newDate,
             accommodation: {
                 name: newAccommodationName,
-                description: newAccommodationDesc
+                description: newAccommodationDesc,
             },
             schedule: [],
             weather: {
@@ -83,7 +87,9 @@ export default function PlanEditor({ dayPlans, setDayPlans, onFinish }: PlanEdit
     const removeScheduleItem = (dayIndex: number, itemIndex: number) => {
         setDayPlans((prev) => {
             const newArr = [...prev];
-            newArr[dayIndex].schedule = newArr[dayIndex].schedule.filter((_, i) => i !== itemIndex);
+            newArr[dayIndex].schedule = newArr[dayIndex].schedule.filter(
+                (_, i) => i !== itemIndex
+            );
             return newArr;
         });
     };
@@ -93,7 +99,10 @@ export default function PlanEditor({ dayPlans, setDayPlans, onFinish }: PlanEdit
         setDayPlans((prev) => {
             const newArr = [...prev];
             const schedule = [...newArr[dayIndex].schedule];
-            [schedule[itemIndex - 1], schedule[itemIndex]] = [schedule[itemIndex], schedule[itemIndex - 1]];
+            [schedule[itemIndex - 1], schedule[itemIndex]] = [
+                schedule[itemIndex],
+                schedule[itemIndex - 1],
+            ];
             newArr[dayIndex].schedule = schedule;
             return newArr;
         });
@@ -104,32 +113,36 @@ export default function PlanEditor({ dayPlans, setDayPlans, onFinish }: PlanEdit
             const newArr = [...prev];
             const schedule = [...newArr[dayIndex].schedule];
             if (itemIndex < schedule.length - 1) {
-                [schedule[itemIndex + 1], schedule[itemIndex]] = [schedule[itemIndex], schedule[itemIndex + 1]];
+                [schedule[itemIndex + 1], schedule[itemIndex]] = [
+                    schedule[itemIndex],
+                    schedule[itemIndex + 1],
+                ];
             }
             newArr[dayIndex].schedule = schedule;
             return newArr;
         });
     };
 
-
     return (
         <div className="p-3 border rounded bg-white shadow">
             <h2 className="text-xl font-bold mb-4">複数日プラン編集</h2>
 
-            {/* 日ごとの表示 */}
-            <div>
-                {dayPlans.map((dayPlan, index) => <DayBlock
-                    key={index}
-                    dayPlan={dayPlan}
-                    dayIndex={index}
-                    removeDay={removeDay}
-                    moveDayUp={moveDayUp}
-                    moveDayDown={moveDayDown}
-                    addScheduleItem={addScheduleItem}
-                    removeScheduleItem={removeScheduleItem}
-                    moveScheduleItemUp={moveScheduleItemUp}
-                    moveScheduleItemDown={moveScheduleItemDown}
-                />)}
+            {/* 日ごとの表示を横並びに */}
+            <div className="flex flex-row gap-4 mb-4 overflow-x-auto">
+                {dayPlans.map((dayPlan, index) => (
+                    <DayBlock
+                        key={index}
+                        dayPlan={dayPlan}
+                        dayIndex={index}
+                        removeDay={removeDay}
+                        moveDayUp={moveDayUp}
+                        moveDayDown={moveDayDown}
+                        addScheduleItem={addScheduleItem}
+                        removeScheduleItem={removeScheduleItem}
+                        moveScheduleItemUp={moveScheduleItemUp}
+                        moveScheduleItemDown={moveScheduleItemDown}
+                    />
+                ))}
             </div>
 
             {/* 新しい日を追加 */}
@@ -152,7 +165,9 @@ export default function PlanEditor({ dayPlans, setDayPlans, onFinish }: PlanEdit
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-semibold">宿泊施設 (オプション)</label>
+                        <label className="block text-sm font-semibold">
+                            宿泊施設 (オプション)
+                        </label>
                         <input
                             type="text"
                             value={newAccommodationName}
@@ -165,7 +180,7 @@ export default function PlanEditor({ dayPlans, setDayPlans, onFinish }: PlanEdit
                             value={newAccommodationDesc}
                             onChange={(e) => setNewAccommodationDesc(e.target.value)}
                             className="w-full border px-2 py-1 rounded"
-                            placeholder="例: ○○ホテル"
+                            placeholder="説明など"
                         />
                     </div>
                     <div className="flex gap-2">
